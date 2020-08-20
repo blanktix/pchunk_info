@@ -1,9 +1,9 @@
 #!/usr/bin/python2
 from argparse import ArgumentParser
-from struct import pack, unpack
 from binascii import unhexlify, hexlify
 
 import re
+import struct
 
 HEADER = b'\x89\x50\x4e\x47\x0d\x0a\x1a\x0a'
 CHUNK_TYPE = [
@@ -37,7 +37,12 @@ CHUNK_TYPE = [
 
 class Helper:
     def bytes_to_long(self, data):
-        return unpack('!I', data)[0]
+        return struct.unpack('!I', data)[0]
+
+
+class ChunkNotFoundError(Exception):
+    def __init__(self, message="Unknown Chunk type"):
+        super(Exception, self).__init__(self.message)
 
 
 class Chunk:
@@ -72,16 +77,11 @@ class Chunk:
         return ''.join(self.chunkss)
 
 
-class Info(Helper):
-    def __init__(self, pathname):
-        with open(pathname, 'rb') as f:
-            self.content = f.read()
-
+class TypeBasedParser(object):
+    def __init__(self, content):
         self.chunks = []
         self.pos = 8
-
-        assert self.content[:8] == HEADER, \
-        'File must be a PNG Image'
+        self.content = content
 
     def locate_chunk(self, data):
         rule = r'|'.join('(%s)' % (_) for _ in CHUNK_TYPE)
@@ -96,8 +96,8 @@ class Info(Helper):
         self.pos += len(content)
         return len(content)
 
-    def lookup(self):
-        data = str(self.content[8:])
+    def run(self):
+        data  = self.content[self.pos: ]
         types = self.locate_chunk(data)    
         pairs = [(types[i], types[i+1]) for i in range(len(types)-1)]
 
@@ -110,9 +110,53 @@ class Info(Helper):
 
         self.parse_chunk(data)
 
+
+class DefaultParser(Helper):
+    def __init__(self, content):
+        self.chunks = []
+        self.pos = 8
+        self.content = content
+
+    def parse_chunk(self, length):
+        content = self.content[self.pos: self.pos+length]
+        self.chunks.append(Chunk(content, self.pos))
+        self.pos += len(content)
+
+
+    def run(self):
+        while True:
+            try:
+                begin, end = (self.pos, self.pos+4)
+                length = self.bytes_to_long(self.content[begin: end])
+                self.parse_chunk(length + 12)
+            except struct.error:
+                break
+        
+        if self.chunks[-1].type not in CHUNK_TYPE:
+            raise ChunkNotFoundError
+        
+
+class Info(Helper):
+    def __init__(self, pathname):
+        with open(pathname, 'rb') as f:
+            self.content = f.read()
+            self.chunks = []
+
+        assert self.content[:8] == HEADER, 'File must be a PNG Image'
+
+    def lookup(self):
+        try:
+            parser = DefaultParser(self.content)
+            parser.run()
+        except ChunkNotFoundError as e:
+            parser = TypeBasedParser(self.content)
+            parser.run()
+        finally:
+            self.chunks = parser.chunks
+
     def display(self):
         columns = ['No', 'Type', 'Offset', 'Size', 'Data Length', 'CRC', ]
-        template = '{0:<3}{1:<5}{2:<10}{3:<10}{4:<12}{5:<2}' 
+        template = '{0:<5}{1:<5}{2:<10}{3:<13}{4:<12}{5:<2}' 
 
         print(template.format(*columns))
         for n, i in enumerate(self.chunks):
@@ -122,10 +166,10 @@ class Info(Helper):
             _data = len(i.data)
             _pos  = hex(i.offset)
             
-            print template.format(n, _type, _pos, _size, _data, _crc)
+            print template.format(n+1, _type, _pos, _size, _data, _crc)
 
-    def raw(self):
-        return HEADER + ''.join(i.raw for i in self.chunks)
+    def raw_data(self):
+        return HEADER + ''.join(c.raw for c in self.chunks)
 
 
 if __name__ == "__main__":
