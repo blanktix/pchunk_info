@@ -2,51 +2,111 @@
 
 pchunk_info is a simple tool for displaying basic information of PNG Chunk.
 
-
 ## Usage
 
 For instances, you can check helper section by passing `-h` or `--help`.
 
 ```bash
-$ python2 pchunk_info.py -h                
-usage: pchunk_info.py [-h] png_image
+$ python2 pchunk_info.py -h                         
+usage: pchunk_info [-h] [--type chunk_type [chunk_type ...]] [--dump output]
+                   [--extract] [--object id [id ...]] [--limit N] [--fix-crc]
+                   file [file ...]
 
 Simple pngchunk info based on list of chunk type
 
 positional arguments:
-  png_image   Path to png image
+  file                  a PNG image
 
 optional arguments:
-  -h, --help  show this help message and exit
+  -h, --help            show this help message and exit
+  --type chunk_type [chunk_type ...], -t chunk_type [chunk_type ...]
+                        Filter chunk by type
+  --dump output, -d output
+                        Dump raw chunk by selection
+  --extract, -e         Extract chunk by selection
+  --object id [id ...], -o id [id ...]
+                        Filter chunk by object id
+  --limit N             Number of chunk output
+  --fix-crc             Fix CRC error and populate new image
+
                                                       
+```
+
+### Type-based filter
+
+To specify the chunk type output based on its type, simply run:
+
+```bash
+# Single filter
+$ python2 pchunk_info.py image.png -t 
+
+# Multiple filter
+$ python2 pchunk_info image.png -t IHDR IDAT
+
+```
+
+### Id-number Filter
+
+To specify the chunk type output based on Id number, simply run:
+
+```bash
+# Single filter
+$ python2 pchunk_info.py image.png -o 0
+
+# Multiple filter
+$ python2 pchunk_info image.png -o 0 1 2
+
+# or using bash substitution
+$ python2 pchunk_info image.png -o `seq 0 2`
+
+```
+
+### Limit output
+
+To specify the number of chunk return, simply run:
+
+```bash
+# Show top 20 chunk
+$ python2 pchunk_info.py image.png --limit 20
+
+```
+
+### Extract chunk by selection
+
+To extract a certain section of PNG chunk, simply run:
+
+```bash
+# No filter
+$ python2 pchunk_info.py image.png -e
+
+# with filter
+$ python2 pchunk_info.py image.png -t IDAT -e
+
+```
+
+### Dump PNG based on chunk selection
+
+To dump PNG image based on selected chunk, simply run:
+
+```bash
+$ python2 pchunk_info.py image.png -d some_name.png
+
+```
+
+### Fix CRC error
+
+To fix a CRC error issue, simply run:
+
+```bash
+$ python2 pchunk_info.py crc_error_example.png --fix-crc
+
 ```
 
 ## Demo
 
 For instances, here is the demonstration of pchunk_info:
 
-```bash
-$ python2 pchunk_info.py examples/image.png
-No Type Offset    Size      Data Length CRC
-0  IHDR 0xc       13        13          dfe56b7c
-1  gAMA 0x25      4         4           0bfc6105
-2  cHRM 0x35      32        32          9cba513c
-3  bKGD 0x61      6         6           a0bda793
-4  pHYs 0x73      9         9           d2dd7efc
-5  IDAT 0x88      32768     32768       2b6e91c1
-6  IDAT 0x8094    32768     32768       e184c0e5
-7  IDAT 0x100a0   32768     32768       70ca56fe
-8  IDAT 0x180ac   32768     32768       2a2c7f51
-9  IDAT 0x200b8   32768     32768       bb0d39d7
-10 IDAT 0x280c4   32768     32768       04912752
-11 IDAT 0x300d0   32768     32768       7da9d25e
-12 IDAT 0x380dc   32768     32768       e51bc8e2
-13 IDAT 0x400e8   26130     26130       ba995859
-14 tEXt 0x46706   37        37          7e593e47
-15 tEXt 0x46737   37        37          0f0486fb
-16 IEND 0x46768   0         0           ae426082
-
-```
+![Alt text](./demo.svg)
 
 ## Authors
 
