@@ -16,32 +16,32 @@ __version__ = '0.1'
 
 HEADER = b'\x89\x50\x4e\x47\x0d\x0a\x1a\x0a'
 CHUNK_TYPE = [
-    'IHDR',
-    'tEXt',
-    'zTXt',
-    'iTXt',
-    'tRNS',
-    'cHRM',
-    'gAMA',
-    'iCCP',
-    'sRGB',
-    'bKGD',
-    'pHYs',
-    'hIST',
-    'sPLT',
-    'sBIT',
-    'fcTL', # APNG only
-    'acTL', # APNG only
-    'fdAT', # APNG only
-    'tIME',
-    'PLTE',
-    'oFFs',
-    'pCAL',
-    'sCAL',
-    'sTER',
-    'fRAc',
-    'IDAT',
-    'IEND'
+    b'IHDR',
+    b'tEXt',
+    b'zTXt',
+    b'iTXt',
+    b'tRNS',
+    b'cHRM',
+    b'gAMA',
+    b'iCCP',
+    b'sRGB',
+    b'bKGD',
+    b'pHYs',
+    b'hIST',
+    b'sPLT',
+    b'sBIT',
+    b'fcTL', # APNG only
+    b'acTL', # APNG only
+    b'fdAT', # APNG only
+    b'tIME',
+    b'PLTE',
+    b'oFFs',
+    b'pCAL',
+    b'sCAL',
+    b'sTER',
+    b'fRAc',
+    b'IDAT',
+    b'IEND'
 ]
 
 
@@ -172,9 +172,9 @@ class DefaultParser(Helper):
                 break
         
         if self.chunks[-1].type not in CHUNK_TYPE:
-            raise ChunkNotFoundError, 'Unknown chunk type'
+            raise ChunkNotFoundError('Unknown chunk type')
         elif length > len(self.content):
-            raise IndexError, 'Out of range'
+            raise IndexError('Out of range')
  
 
 class Info(Helper):
@@ -203,19 +203,19 @@ class Info(Helper):
         columns = ['Id', 'Type', 'Offset', 'Size', 'Data Length', 'CRC', ]
         template = '{0:<5}{1:<5}{2:<10}{3:<13}{4:<12}{5:<2}' 
 
-        print 'Filename:', self.filename
-        print 'Size:', self.filesize
+        print('Filename:', self.filename)
+        print('Size:', self.filesize)
         
-        print '\nChunk Info\n', template.format(*columns)
-        for n, c in self.chunks.iteritems():
+        print('\nChunk Info\n', template.format(*columns))
+        for n, c in self.chunks.items():
             _size = Helper.bytes_to_long(c.size)
             _type = c.type
             _crc  = self.check_crc(c.crc, c)
             _data = len(c.data)
             _pos  = hex(c.offset)
             
-            print template.format(n, _type, _pos, _size, _data, _crc)
-        print
+            print(template.format(n, _type.decode("utf-8"), _pos, _size, _data, _crc.decode("utf-8")))
+        print()
 
     def check_crc(self, checksum, data):
         data = Helper.calc_crc32(data.type + data.data)
@@ -253,27 +253,27 @@ class Info(Helper):
                 pass
             
             template = 'chunks/{}-{}'
-            for n, c in self.chunks.iteritems():
+            for n, c in self.chunks.items():
                 with open(template.format(n, c.type), 'wb') as f:
                     f.write(c.raw)
             
-            print 'Extracted {} chunks'.format(len(self.chunks))
+            print('Extracted {} chunks'.format(len(self.chunks)))
 
     def dump(self):
         if self.options.dump:
             with open(self.options.dump, 'wb') as f:
                 f.write(self.raw_data())
 
-            print 'Dump selected chunks into {}'.format(self.options.dump)
+            print('Dump selected chunks into {}'.format(self.options.dump))
         
         if self.options.fix_crc:
-            for n, c in self.chunks.iteritems():
+            for n, c in self.chunks.items():
                 c.crc = Helper.calc_crc32(c.type + c.data)
             
             with open('fixed.png', 'wb') as f:
                 f.write(self.raw_data())
 
-            print 'Repaired CRC error & created fixed.png'
+            print('Repaired CRC error & created fixed.png')
 
     def raw_data(self):
         return HEADER + ''.join(c.raw for c in self.chunks.values())
